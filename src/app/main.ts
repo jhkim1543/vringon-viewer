@@ -40,6 +40,7 @@ const viewer = new PathTraceViewer({ container: viewport, assetBase: base });
 const S = viewer.settings;
 // 접속 GPU 에 맞춘 자동 프로파일(첫 방문: 문자열 추정 / 재방문: 지난 실측 spp/s)
 const deviceProfile = applyDeviceProfile(viewer);
+(window as any).deviceProfile = deviceProfile; // 콘솔 확인용
 const recordThroughput = createThroughputRecorder(viewer);
 viewer.on('stats', (st: ViewerStats) => recordThroughput(st.phase, st.samples, st.elapsedMs, st.resolution));
 // 누적 타임라인(좌측 필름스트립) + 비교 오버레이 — "누적되는 게 보이게"
