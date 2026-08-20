@@ -1,0 +1,11 @@
+import puppeteer from 'puppeteer-core';
+import path from 'node:path';
+const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-gl=angle', '--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-unsafe-webgpu', '--window-size=1440,900'], defaultViewport: { width: 1440, height: 900 }, userDataDir: path.join(process.env.LOCALAPPDATA, 'vringon-pathtracer-headless-profile-d3d11') });
+const page = await browser.newPage();
+page.on('console', (m) => { const t = m.text(); if (/OIDN|oidn/.test(t) && !/WebSocket/.test(t)) console.log('[console]', t.slice(0, 300)); });
+const t0 = Date.now();
+await page.goto('http://127.0.0.1:5230/?model=proc:solitaire-gold', { waitUntil: 'load' });
+await page.waitForFunction(() => window.viewer && window.viewer.oidnAutoChecked === true, { timeout: 120000, polling: 300 });
+const r = await page.evaluate(() => ({ denoise: window.viewer.settings.post.denoise, est: Math.round(window.viewer.oidnPassMs), toast: document.getElementById('toast')?.textContent }));
+console.log('after', ((Date.now() - t0) / 1000).toFixed(1), 's', JSON.stringify(r));
+await browser.close();

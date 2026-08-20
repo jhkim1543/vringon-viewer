@@ -1,0 +1,27 @@
+{
+  "name": "vringon-pathtracer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "VRINGON path-traced 3D web viewer (three.js + three-gpu-pathtracer)",
+  "scripts": {
+    "dev": "vite --port 5230 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5231 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "assets": "node scripts/fetch-assets.mjs"
+  },
+  "dependencies": {
+    "oidn-web": "0.3.5",
+    "rayzee": "^7.22.8",
+    "three": "^0.185.1",
+    "three-gpu-pathtracer": "^0.0.24",
+    "three-mesh-bvh": "^0.9.14"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "puppeteer-core": "^23.11.1",
+    "typescript": "^5.6.0",
+    "vite": "^6.3.5"
+  }
+}

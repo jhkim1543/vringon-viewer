@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VRING:ON — Path Tracer A/B (권장 조합 vs 기존)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2305070E'/><path d='M22 30 L42 72 L50 56 L58 72 L78 30 L66 30 L58 50 L50 34 L42 50 L34 30 Z' fill='%23FFFFFF'/></svg>" />
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    <link rel="stylesheet" href="/src/app/styles.css" />
+    <link rel="stylesheet" href="/src/app/compare.css" />
+  </head>
+  <body>
+    <div id="cmp">
+      <header id="cmp-top">
+        <div class="brand" title="VRING:ON">
+          <svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><path d="M22 30 L42 72 L50 56 L58 72 L78 30 L66 30 L58 50 L50 34 L42 50 L34 30 Z" fill="currentColor" /></svg>
+          <span class="cmp-title">Path Tracer A/B</span>
+          <span class="cmp-sub">권장 조합(시간적 재투영 + 하이브리드 채움) vs 기존 패스트레이서 — 같은 모델·조명·카메라, 카메라는 양쪽이 동기화</span>
+        </div>
+        <div class="cmp-actions">
+          <select id="cmp-model" title="샘플 모델"></select>
+          <button id="cmp-step" class="btn ghost" title="양쪽을 동시에 15° 회전 (이동 후 깨끗해질 때까지 시간을 잰다)">↻ 15° 회전</button>
+          <button id="cmp-auto" class="btn ghost" title="15° × 6회 자동 회전 후 표 채우기">▶ 자동 테스트 ×6</button>
+          <button id="cmp-reset" class="btn ghost" title="양쪽 누적 초기화 (R)">초기화</button>
+          <a class="btn ghost" href="/" title="단일 뷰어로">단일 뷰어 →</a>
+        </div>
+      </header>
+
+      <main id="cmp-body">
+        <section class="pane" id="pane-a">
+          <div class="pane-head">
+            <span class="tag a">A</span>
+            <b>권장 조합</b>
+            <span class="desc">시간적 재투영(히스토리 재사용) + 하이브리드 래스터 채움 + à-trous</span>
+            <label class="pane-opt"><input type="checkbox" id="a-hybrid" checked /> 하이브리드 채움</label>
+          </div>
+          <div class="viewport" id="vp-a"></div>
+          <div class="pane-stats" id="st-a"></div>
+        </section>
+        <section class="pane" id="pane-b">
+          <div class="pane-head">
+            <span class="tag b">B</span>
+            <b>기존 패스트레이서</b>
+            <span class="desc">카메라 이동 → 누적 리셋 → 0 부터 재누적 + à-trous</span>
+          </div>
+          <div class="viewport" id="vp-b"></div>
+          <div class="pane-stats" id="st-b"></div>
+        </section>
+      </main>
+
+      <footer id="cmp-foot">
+        <div class="foot-left">
+          <b>이동 후 "깨끗" 까지</b> = 유효 spp ≥ <span id="cmp-thr">32</span> 도달 시간 (A 는 재투영된 히스토리 포함, B 는 새 누적만). 드래그해서 직접 비교하거나 ↻ 를 누르세요.
+        </div>
+        <div id="cmp-table-wrap">
+          <table id="cmp-table">
+            <thead><tr><th>#</th><th>이동</th><th>A 깨끗까지</th><th>B 깨끗까지</th><th>배율</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </footer>
+      <div id="cmp-toast"></div>
+    </div>
+    <script type="module" src="/src/app/compare.ts"></script>
+  </body>
+</html>
