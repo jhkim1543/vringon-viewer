@@ -22,9 +22,11 @@ const ENTRY = [
   "import { PhysicalPathTracingMaterial } from 'three-gpu-pathtracer';",
   "import { patchShadowCatcher } from './src/viewer/shadowCatcher';",
   "import { patchDispersion } from './src/viewer/dispersion';",
+  "import { patchTexelFetch1D } from './src/viewer/texelFetch';",
   'const mat = new PhysicalPathTracingMaterial();',
   'patchShadowCatcher(mat, 0.85);',
   'patchDispersion(mat, 1);',
+  'patchTexelFetch1D(mat);',
   'globalThis.__SRC = mat.fragmentShader;',
 ].join(NL);
 

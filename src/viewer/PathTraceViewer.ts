@@ -39,6 +39,7 @@ import { AuxBufferRenderer, OidnDenoiser, floatToTexture, probeOidnSupport } fro
 import { ViteBVHWorker } from './bvhWorker';
 import { patchShadowCatcher } from './shadowCatcher';
 import { patchDispersion } from './dispersion';
+import { patchTexelFetch1D } from './texelFetch';
 import { AtrousDenoiser, DEFAULT_ATROUS, AtrousParams } from './atrous';
 import { TemporalReprojector } from './temporal';
 import { RayzeeBackend } from './backends/RayzeeBackend';
@@ -237,6 +238,8 @@ export const TONE_MAPPINGS: Record<ToneMappingName, ToneMapping> = {
 
 /** BVH 트리 최대 깊이 — 이보다 깊어지면 잎에 삼각형을 더 담는다(정확도 손실 없음, 해당 잎만 느려짐) */
 const BVH_MAX_DEPTH = 28;
+/** stratifiedTexture 의 가로 폭 = effect id 슬롯 수. 라이브러리가 쓰는 최대 id 는 16, 우리 패치까지 13 — 여유 포함 24 */
+const STRATIFIED_WIDTH = 24;
 /** 순회 스택 슬롯 수. 트리 깊이보다 커야 한다(작으면 순회가 잘려 지오메트리가 사라진다). 기본값 60 → 30 */
 const BVH_STACK_DEPTH = 30;
 
@@ -511,6 +514,8 @@ export class PathTraceViewer {
     patchShadowCatcher((this.pathTracer as any)._pathTracer.material, this.settings.floor.shadowStrength);
     // 투과 재질 분산(보석 파이어) — hero channel 방식 (dispersion.ts)
     patchDispersion((this.pathTracer as any)._pathTracer.material, this.settings.render.dispersion);
+    // BVH 순회 텍셀 주소 계산에서 정수 나눗셈 제거 (texelFetch.ts) — 읽는 텍셀은 비트 동일
+    patchTexelFetch1D((this.pathTracer as any)._pathTracer.material);
     this.prepareShaderOnce();
     this.tryEnableBvhWorker();
     this.applyBvhOptions();
@@ -1847,6 +1852,25 @@ export class PathTraceViewer {
     // 톤매핑/색공간은 three 의 프로그램 캐시 키에 들어가고 "캔버스인가 렌더타깃인가" 로 갈린다.
     // 이 재질은 항상 float 타깃에만 그리므로 고정해 변형이 늘지 않게 한다.
     mat.toneMapped = false;
+    // ④ stratifiedTexture 축 교정 (실제 버그).
+    //    셰이더는 uv = ivec2( effect id, sobolBounceIndex ) 로 읽는데(three-gpu-pathtracer/src/shader/rand/stratified.glsl.js)
+    //    라이브러리는 init( count=height=20, depth=width=bounces+transmissiveBounces+5 ) 로 두 축을 뒤바꿔 잡는다
+    //    (src/core/PathTracingRenderer.js — StratifiedSamplesTexture.init 은 image.width=depth, image.height=count).
+    //    기본값(5+10+5=20)에서는 20×20 이라 우연히 맞지만, **조작 중 3/4 로 내리면 폭이 12** 가 되어
+    //    라이브러리가 실제로 쓰는 effect id 12~16(GGX rand2(12), 디퓨즈/클리어코트 rand2(13), 시엔 rand2(14),
+    //    BSDF 로브 선택 rand(15), 등방 산란 rand2(16))과 우리 패치의 rand4(12)(shadowCatcher)·rand(13)(dispersion)이
+    //    전부 텍스처 밖을 읽는다. 범위 밖 texelFetch 는 0 을 돌려주므로 rand 가 fract(0 + pixelSeed.r) = **픽셀별 상수**로 굳어
+    //    조작 중 프리뷰가 수렴을 멈추고 로브 선택이 픽셀마다 고정된다.
+    //    → 폭은 effect id 상한(현재 16)을 덮게 상수로 고정하고, 높이는 라이브러리가 준 bounces+transmissiveBounces+5 로
+    //      최대 sobolBounceIndex 를 덮게 한다(Bounces 16 까지 안전 — 기존엔 9 이상에서 세로축이 넘쳤다).
+    //    ⚠ 새 effect id 를 추가할 때 STRATIFIED_WIDTH 를 넘기지 말 것.
+    const stx = (mat as any).stratifiedTexture;
+    if (stx && !stx.__axisFixed) {
+      const origInit = stx.init.bind(stx);
+      stx.init = (count?: number, depth?: number, strata?: number) => origInit(Math.max(20, depth ?? 20), STRATIFIED_WIDTH, strata);
+      stx.__axisFixed = true;
+      stx.init(20, 20);
+    }
     const origOnBeforeRender = mat.onBeforeRender?.bind(mat);
     mat.onBeforeRender = () => {
       origOnBeforeRender?.();
