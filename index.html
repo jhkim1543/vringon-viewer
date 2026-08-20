@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VRING:ON — Path Traced Viewer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2305070E'/><path d='M22 30 L42 72 L50 56 L58 72 L78 30 L66 30 L58 50 L50 34 L42 50 L34 30 Z' fill='%23FFFFFF'/></svg>" />
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    <script type="module" crossorigin src="./assets/main-CrRdWyIL.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/ui-hhFnfL-J.js">
+    <link rel="stylesheet" crossorigin href="./assets/ui-HYJCNNCu.css">
+  </head>
+  <body>
+    <div id="app">
+      <!-- VRING:ON 글로벌 내비게이션 -->
+      <header id="topbar">
+        <div class="brand" title="VRING:ON">
+          <svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><path d="M22 30 L42 72 L50 56 L58 72 L78 30 L66 30 L58 50 L50 34 L42 50 L34 30 Z" fill="currentColor" /></svg>
+        </div>
+        <nav class="topnav" aria-label="VRING:ON">
+          <button class="on">Create</button>
+          <button disabled title="데모에서는 비활성">Library</button>
+          <button disabled title="데모에서는 비활성">Tech Pack</button>
+          <button disabled title="데모에서는 비활성">Contents</button>
+          <span class="topnav-mode">Path Traced Viewer</span>
+        </nav>
+        <div class="top-actions">
+          <select id="sample-select" title="샘플 모델"></select>
+          <button id="btn-upload" class="btn" title="GLB/GLTF/OBJ/STL/FBX 또는 HDR/EXR">모델 열기</button>
+          <input id="file-input" type="file" accept=".glb,.gltf,.obj,.stl,.fbx,.hdr,.exr" hidden />
+          <button id="btn-theme" class="btn ghost icon" title="라이트/다크 전환">◐</button>
+          <div class="avatar" title="jhkim">J</div>
+          <button id="btn-panel" class="btn ghost icon" title="패널 접기 (H)">☰</button>
+        </div>
+      </header>
+
+      <main id="body">
+        <!-- 중앙 캔버스 -->
+        <section id="stage">
+          <div id="viewport"></div>
+          <!-- 스테이지 상단 누적 바 -->
+          <div id="accum-bar" data-phase="preview"></div>
+          <!-- 렌더 단계 · 진행률 (컴파일 → 프리뷰 → 패스트레이싱 n% → 완료) -->
+          <div id="progress-chip" data-phase="preview">
+            <span class="dot"></span>
+            <span id="progress-label">준비 중</span>
+            <span id="progress-pct"></span>
+            <div class="pbar"><div id="progress-fill"></div></div>
+            <div id="progress-sub"></div>
+          </div>
+          <div id="hud">
+            <div id="hud-status"></div>
+            <div id="hud-stats"></div>
+          </div>
+          <!-- 하단 플로팅 툴바 -->
+          <div id="floatbar">
+            <div class="view-group">
+              <button class="btn ghost" data-view="quarter" title="3/4 뷰">¾</button>
+              <button class="btn ghost" data-view="front" title="정면">F</button>
+              <button class="btn ghost" data-view="left" title="좌측">L</button>
+              <button class="btn ghost" data-view="right" title="우측">R</button>
+              <button class="btn ghost" data-view="back" title="후면">B</button>
+              <button class="btn ghost" data-view="top" title="상단">T</button>
+            </div>
+            <span class="sep"></span>
+            <button id="btn-pt-toggle" class="btn ghost" title="Path Tracing ↔ 래스터 (Space)">PT</button>
+            <button id="btn-turntable" class="btn ghost" title="턴테이블">⟳</button>
+            <span class="sep"></span>
+            <button id="btn-share" class="btn ghost" title="현재 뷰 설정 링크 복사">⇪ Share</button>
+            <button id="btn-capture" class="btn ghost" title="현재 화면 그대로 저장">⤓ Save</button>
+          </div>
+          <div id="still-overlay">
+            <div class="still-card">
+              <div class="still-title">렌더샷 진행 중</div>
+              <div class="still-meta" id="still-meta">준비 중…</div>
+              <div class="still-bar"><div id="still-bar-fill"></div></div>
+              <button id="btn-still-cancel" class="btn ghost small">취소</button>
+            </div>
+          </div>
+          <!-- 첫 방문 준비 안내: 이 기기에 컴파일 기록이 없을 때만 표시 -->
+          <div id="first-visit" hidden>
+            <div class="fv-title">처음 오셨네요 — 이 GPU에 맞춰 렌더러를 준비합니다</div>
+            <ol class="fv-steps">
+              <li data-step="assets"><span class="fv-dot"></span>리소스 다운로드<em id="fv-assets">대기</em></li>
+              <li data-step="scene"><span class="fv-dot"></span>3D 씬 준비 (BVH)<em id="fv-scene">대기</em></li>
+              <li data-step="shader"><span class="fv-dot"></span>GPU 셰이더 컴파일<em id="fv-shader">대기</em></li>
+            </ol>
+            <div class="fv-note">이 과정은 <b>첫 방문 1회만</b> 필요합니다. 다음부터는 수 초 안에 시작됩니다.</div>
+          </div>
+          <div id="drop-hint">GLB · GLTF · OBJ · STL · FBX 파일이나 HDR/EXR 환경맵을 여기에 끌어다 놓으세요</div>
+          <div id="toast"></div>
+        </section>
+
+        <!-- 우측 패널: 상단 탭(Tracer/Camera/Light/Material/Render/Info) + 접이식 그룹 -->
+        <aside id="panel">
+          <div id="panel-tabs" role="tablist"></div>
+          <div id="panel-sections"></div>
+          <div id="panel-foot">
+            <button id="btn-still" class="btn accent wide" title="고해상도 렌더샷">렌더샷 생성</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
